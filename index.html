@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HostX — put your site online</title>
+<style>
+:root{--bg:#eef2f1;--panel:#fff;--ink:#14201c;--mute:#5d6b66;--line:#cfd8d4;--acc:#1f5bff;--accink:#fff;--ok:#117a43;--bad:#b3261e;--dock:#f6f9f8;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1412;--panel:#151e1b;--ink:#e6eeea;--mute:#8fa19a;--line:#2a3833;--acc:#6b93ff;--accink:#0b1020;--ok:#4cc88b;--bad:#ff8a80;--dock:#111917;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:700;font-size:20px;letter-spacing:-.02em}
+.mono,code{font-family:ui-monospace,Consolas,monospace;font-size:14px}
+main{max-width:1000px;margin:0 auto;padding:20px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+h2{font-size:18px;margin:0 0 12px}h3{font-size:16px;margin:0 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+input[type=text],input[type=email],input[type=password]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.btn{padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+.btn.del{color:var(--bad)}
+.btn.sm{padding:3px 9px;font-size:14px}
+.mute{color:var(--mute)}.err{color:var(--bad);min-height:1.5em}.ok{color:var(--ok)}
+.auth{max-width:380px;margin:8vh auto 0}
+.tabs{display:flex;gap:4px;margin-bottom:14px}
+.tabs button{flex:1;padding:8px;border:0;border-bottom:2px solid var(--line);background:none;cursor:pointer;color:var(--mute)}
+.tabs button.on{border-color:var(--acc);color:var(--ink);font-weight:600}
+.auth input{margin-bottom:10px}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}
+.site{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);margin-bottom:8px;cursor:pointer}
+.site.on{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+.site small{display:block;color:var(--mute)}
+.dock{border:2px dashed var(--line);border-radius:10px;background:var(--dock);padding:26px 16px;text-align:center;transition:border-color .15s,background .15s}
+.dock.over{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--dock))}
+.dock .row{justify-content:center;margin-top:12px}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:14px;overflow:hidden;display:none}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .1s}
+.files{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.file{display:flex;gap:10px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line)}
+.file:last-child{border:0}
+.file span.p{flex:1;word-break:break-all}
+.url{word-break:break-all;font-weight:600;color:var(--acc)}
+table{border-collapse:collapse;margin:8px 0}td{padding:4px 14px 4px 0}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header><span class="logo">HostX</span><span id="who" class="row hide"><span id="email" class="mute"></span><button class="btn sm" id="logout">Log out</button></span></header>
+<main>
+  <!-- login / register -->
+  <section id="auth" class="panel auth hide">
+    <div class="tabs"><button class="on" data-m="login">Log in</button><button data-m="register">Create account</button></div>
+    <input id="a-email" type="email" placeholder="Email" autocomplete="email">
+    <input id="a-pw" type="password" placeholder="Password (8+ characters)" autocomplete="current-password">
+    <button class="btn pri" id="a-go" style="width:100%">Log in</button>
+    <p class="err" id="a-err"></p>
+  </section>
+
+  <!-- dashboard -->
+  <section id="app" class="layout hide">
+    <aside>
+      <div class="panel">
+        <h2>Your sites</h2>
+        <div id="list"></div>
+        <div class="row" style="margin-top:10px">
+          <input class="grow" id="new-name" type="text" placeholder="new-site-name" autocapitalize="none">
+          <button class="btn pri" id="new-go">Create site</button>
+        </div>
+        <p class="err" id="new-err"></p>
+      </div>
+    </aside>
+    <div id="detail">
+      <div class="panel mute" id="empty">Create a site to start uploading files.</div>
+      <div id="site" class="hide">
+        <div class="panel">
+          <div class="row"><a id="s-url" class="url grow" target="_blank" rel="noopener"></a><button class="btn del sm" id="s-del">Delete site</button></div>
+        </div>
+
+        <div class="panel">
+          <h2>Upload</h2>
+          <div class="dock" id="dock">
+            <strong>Drop files, a folder, or a .zip here</strong>
+            <div class="mute">A zip or folder is unpacked into the site root. Same names are replaced.</div>
+            <div class="row">
+              <button class="btn" id="b-files">Choose files</button>
+              <button class="btn" id="b-folder">Choose folder</button>
+              <button class="btn pri" id="b-zip">Upload .zip</button>
+            </div>
+            <div class="bar" id="bar"><i></i></div>
+            <p id="u-msg" class="mute" style="margin:10px 0 0"></p>
+          </div>
+          <input type="file" id="i-files" multiple class="hide">
+          <input type="file" id="i-folder" webkitdirectory class="hide">
+          <input type="file" id="i-zip" accept=".zip" class="hide">
+        </div>
+
+        <div class="panel">
+          <div class="row" style="justify-content:space-between"><h2 style="margin:0">Files</h2><span class="mute" id="used"></span></div>
+          <div class="files" id="files" style="margin-top:10px"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Custom domain</h2>
+          <div id="dom"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kb = n => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+async function api(url, method = 'GET', body) {
+  const r = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || 'Request failed'); e.status = r.status; throw e; }
+  return j;
+}
+let me, sites = [], cur = null, mode = 'login';
+
+// ---------- auth ----------
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('#a-go').textContent = mode === 'login' ? 'Log in' : 'Create account';
+  $('#a-pw').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+  $('#a-err').textContent = '';
+});
+async function submitAuth() {
+  try { await api('/api/' + mode, 'POST', { email: $('#a-email').value, password: $('#a-pw').value }); boot(); }
+  catch (e) { $('#a-err').textContent = e.message; }
+}
+$('#a-go').onclick = submitAuth;
+$('#a-pw').onkeydown = e => e.key === 'Enter' && submitAuth();
+$('#logout').onclick = async () => { await api('/api/logout', 'POST'); location.reload(); };
+
+async function boot() {
+  try { me = await api('/api/me'); } catch { $('#auth').classList.remove('hide'); $('#app').classList.add('hide'); $('#who').classList.add('hide'); return; }
+  $('#auth').classList.add('hide'); $('#app').classList.remove('hide'); $('#who').classList.remove('hide');
+  $('#email').textContent = me.email;
+  await loadSites();
+}
+
+// ---------- sites ----------
+const siteUrl = s => `${location.protocol}//${s}.${me.base}${location.port ? ':' + location.port : ''}`;
+async function loadSites(select) {
+  sites = await api('/api/sites');
+  if (select) cur = select;
+  if (!sites.find(s => s.slug === cur)) cur = sites[0]?.slug || null;
+  $('#list').innerHTML = sites.map(s => `<button class="site ${s.slug === cur ? 'on' : ''}" data-s="${esc(s.slug)}">${esc(s.slug)}<small>${s.domain ? esc(s.domain.name) + (s.domain.verified ? '' : ' (not verified)') : esc(s.slug + '.' + me.base)}</small></button>`).join('') || '<p class="mute">No sites yet.</p>';
+  document.querySelectorAll('.site').forEach(b => b.onclick = () => { cur = b.dataset.s; loadSites(); });
+  $('#empty').classList.toggle('hide', !!cur); $('#site').classList.toggle('hide', !cur);
+  if (cur) renderSite();
+}
+$('#new-go').onclick = async () => {
+  try { const s = await api('/api/sites', 'POST', { name: $('#new-name').value }); $('#new-name').value = ''; $('#new-err').textContent = ''; await loadSites(s.slug); }
+  catch (e) { $('#new-err').textContent = e.message; }
+};
+$('#new-name').onkeydown = e => e.key === 'Enter' && $('#new-go').click();
+$('#s-del').onclick = async () => {
+  if (!confirm(`Delete "${cur}" and all its files? This can't be undone.`)) return;
+  await api('/api/sites/' + cur, 'DELETE'); cur = null; loadSites();
+};
+
+function renderSite() {
+  const s = sites.find(x => x.slug === cur), a = $('#s-url');
+  const u = s.domain && s.domain.verified ? `${location.protocol}//${s.domain.name}` : siteUrl(s.slug);
+  a.href = u; a.textContent = u;
+  loadFiles(); renderDomain(s);
+}
+async function loadFiles() {
+  const { files, used } = await api(`/api/sites/${cur}/files`);
+  $('#used').textContent = `${files.length} files · ${kb(used)} of ${me.maxSiteMb} MB`;
+  $('#files').innerHTML = files.map(f => `<div class="file"><span class="p mono">${esc(f.path)}</span><span class="mute">${kb(f.size)}</span><button class="btn del sm" data-p="${esc(f.path)}">Delete</button></div>`).join('') || '<div class="file mute">No files yet.</div>';
+  document.querySelectorAll('#files [data-p]').forEach(b => b.onclick = async () => { await api(`/api/sites/${cur}/files?path=${encodeURIComponent(b.dataset.p)}`, 'DELETE'); loadFiles(); });
+}
+
+// ---------- upload ----------
+function normalize(items) { // drop a single wrapper folder so index.html lands in the root
+  if (items.length && items.every(i => i.path.includes('/'))) {
+    const top = items[0].path.split('/')[0];
+    if (items.every(i => i.path.split('/')[0] === top)) items.forEach(i => i.path = i.path.slice(top.length + 1));
+  }
+  return items;
+}
+function send(fd, onProgress) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', `/api/sites/${cur}/upload`);
+    x.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded / e.total);
+    x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch {} x.status < 300 ? res(j) : rej(new Error(j.error || 'Upload failed')); };
+    x.onerror = () => rej(new Error('Network error'));
+    x.send(fd);
+  });
+}
+async function uploadAll(items, extract) {
+  const msg = $('#u-msg'), bar = $('#bar'), fill = bar.firstElementChild;
+  if (!items.length) return;
+  msg.className = 'mute'; msg.textContent = `Uploading ${items.length} file(s)…`; bar.style.display = 'block'; fill.style.width = '0';
+  const BATCH = 100; let done = 0;
+  try {
+    for (let i = 0; i < items.length; i += BATCH) {
+      const part = items.slice(i, i + BATCH), fd = new FormData();
+      fd.append('extract', extract ? '1' : '0');
+      part.forEach(p => fd.append('paths', p.path));
+      part.forEach(p => fd.append('files', p.file, p.file.name));
+      await send(fd, f => fill.style.width = ((done + f * part.length) / items.length * 100) + '%');
+      done += part.length;
+    }
+    fill.style.width = '100%'; msg.className = 'ok'; msg.textContent = 'Done. Your site is updated.';
+  } catch (e) { msg.className = 'err'; msg.textContent = e.message; }
+  setTimeout(() => bar.style.display = 'none', 800);
+  loadFiles();
+}
+const pick = (id, fn) => { $('#b-' + id).onclick = () => $('#i-' + id).click(); $('#i-' + id).onchange = e => { fn([...e.target.files]); e.target.value = ''; }; };
+pick('files', fs => uploadAll(fs.map(f => ({ file: f, path: f.name })), false));
+pick('folder', fs => uploadAll(normalize(fs.map(f => ({ file: f, path: f.webkitRelativePath || f.name }))), false));
+pick('zip', fs => uploadAll(fs.map(f => ({ file: f, path: f.name })), true));
+
+async function readEntry(en, prefix = '') {
+  if (en.isFile) return [{ file: await new Promise(r => en.file(r)), path: prefix + en.name }];
+  const rd = en.createReader(); let all = [], b;
+  do { b = await new Promise(r => rd.readEntries(r)); all.push(...b); } while (b.length);
+  return (await Promise.all(all.map(e => readEntry(e, prefix + en.name + '/')))).flat();
+}
+const dock = $('#dock');
+['dragenter', 'dragover'].forEach(t => dock.addEventListener(t, e => { e.preventDefault(); dock.classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => dock.addEventListener(t, e => { e.preventDefault(); dock.classList.remove('over'); }));
+dock.addEventListener('drop', async e => {
+  const ens = [...e.dataTransfer.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const items = normalize((await Promise.all(ens.map(en => readEntry(en)))).flat());
+  uploadAll(items, items.length > 0 && items.every(i => /\.zip$/i.test(i.path)));
+});
+
+// ---------- custom domain ----------
+function renderDomain(s) {
+  const el = $('#dom'), d = s.domain;
+  if (!d) {
+    el.innerHTML = `<p class="mute">Use your own domain, for example <code>mysite.com</code>. HTTPS is set up automatically.</p>
+      <div class="row"><input class="grow" id="d-in" type="text" placeholder="mysite.com" autocapitalize="none"><button class="btn pri" id="d-add">Connect domain</button></div><p class="err" id="d-err"></p>`;
+    $('#d-add').onclick = async () => { try { await api(`/api/sites/${cur}/domain`, 'POST', { domain: $('#d-in').value }); loadSites(); } catch (e) { $('#d-err').textContent = e.message; } };
+    return;
+  }
+  const ip = esc(me.ip || 'SERVER_IP');
+  el.innerHTML = d.verified
+    ? `<p class="ok"><strong>${esc(d.name)}</strong> is connected.</p><p class="mute">Also works at <code>www.${esc(d.name)}</code> if you add a www record pointing to the same IP.</p><button class="btn del" id="d-rm">Remove domain</button>`
+    : `<p><strong>${esc(d.name)}</strong> is waiting for DNS. At your domain registrar, add these records:</p>
+       <table class="mono"><tr><td>A</td><td>@</td><td>${ip}</td></tr><tr><td>A</td><td>www</td><td>${ip}</td></tr></table>
+       <p class="mute">DNS can take a few minutes to update.</p>
+       <div class="row"><button class="btn pri" id="d-ver">Check DNS</button><button class="btn del" id="d-rm">Remove domain</button></div><p id="d-err" class="err"></p>`;
+  $('#d-rm').onclick = async () => { await api(`/api/sites/${cur}/domain`, 'DELETE'); loadSites(); };
+  if ($('#d-ver')) $('#d-ver').onclick = async () => {
+    try {
+      const r = await api(`/api/sites/${cur}/domain/verify`, 'POST');
+      if (r.verified) loadSites();
+      else $('#d-err').textContent = r.found.length ? `Found ${r.found.join(', ')} but expected ${r.expected}.` : 'No A record found yet. Check the records and try again in a few minutes.';
+    } catch (e) { $('#d-err').textContent = e.message; }
+  };
+}
+boot();
+</script>
+</body>
+</html>
