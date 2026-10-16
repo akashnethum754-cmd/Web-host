@@ -40,7 +40,7 @@ After=network.target
 [Service]
 WorkingDirectory=$APP
 Environment=BASE_DOMAIN=$BASE_DOMAIN
-Environment=SERVER_IP=$SERVER_IP
+Environment=172.104.166.177
 Environment=PORT=3000
 ExecStart=$(command -v node) server.js
 Restart=always
@@ -54,7 +54,7 @@ echo "==> Configuring Caddy (automatic HTTPS for subdomains + custom domains)"
 cat > /etc/caddy/Caddyfile <<EOF
 {
 	on_demand_tls {
-		ask http://127.0.0.1:3000/_caddy/check
+		ask http://172.104.166.177/_caddy/check
 	}
 }
 
